@@ -11,7 +11,7 @@
             "preLaunchTask": "gdb-debug", 
             "postDebugTask": "stop emulation",
             "serverLaunchTimeout": 10000,
-            "stopAtEntry": true,
+            "stopAtEntry": false,
             "program": "${workspaceFolder}/${workspaceFolderBasename}.elf",
             "MIMode": "gdb",
             "externalConsole": true,
@@ -19,7 +19,7 @@
             "targetArchitecture": "arm",
             "miDebuggerServerAddress": "localhost:2345",
             "windows": {
-                "miDebuggerPath": "C:/devkitPro/devkitARM/bin/arm-none-eabi-gdb.exe",
+                "miDebuggerPath": "D:/devkitPro/devkitARM/bin/arm-none-eabi-gdb.exe",
                 "setupCommands": [
                     {
                     "description": "Enable pretty-printing for gdb",
