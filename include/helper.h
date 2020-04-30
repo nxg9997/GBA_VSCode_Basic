@@ -36,6 +36,10 @@ void DrawRect(Rectangle rect);
 
 void DrawGameObject(GameObject g, bool _tracer);
 
+void DrawNum(int num, Point pos);
+
+void DrawFourDigit(unsigned int num, Point pos);
+
 // - Input Handling
 void key_poll();
 

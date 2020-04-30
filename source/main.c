@@ -115,6 +115,11 @@ int main()
 	// - define game variables
 	int lives = 3;
 	int play = false;
+	int points = 0;
+
+	/*DrawFourDigit(1234, MakePoint(5,5));
+	DrawFourDigit(5678, MakePoint(5,18));
+	DrawFourDigit(90,   MakePoint(5,30));*/
 
 	while(1){
 		vsync();
@@ -219,6 +224,7 @@ int main()
 					flipBallY = true;
 				blocks[i].active = false;
 				DrawRect(MakeRect(blocks[i].shape.pos,blocks[i].shape.size,black));
+				points += 10;
 			}
 			else DrawGameObject(blocks[i], false);
 		}
@@ -232,6 +238,7 @@ int main()
 			ballSpd.x = -ballSpd.x;
 		}
 		
+		DrawFourDigit(points, MakePoint(5,5));
 	}
 
 	// - draw red screen on game over
