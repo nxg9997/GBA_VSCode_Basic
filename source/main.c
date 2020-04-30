@@ -49,6 +49,19 @@ void ChangeColor(unsigned short* imgPtr)
 	}
 }
 
+void drawRect(int left, int top, int width, int height, uint16 clr)
+{
+    for (int y = 0; y < height; ++y)
+    {
+        for (int x = 0; x < width; ++x)
+        {
+    	   (SCREENBUFFER)[(top + y) * SCREEN_W + left + x] = clr;
+        }
+    }
+}
+
+
+
 int main()
 {
 	//set GBA rendering context to MODE 3 Bitmap Rendering
@@ -56,32 +69,73 @@ int main()
 
 	unsigned short img[240*160] = {0x0000};
 
-	uint16 color = MakeColor(31,31,31);
+	uint16 color = MakeColor(31,0,0);
 	for(unsigned int i = 0; i < 240*160; i++)
 	{
 		img[i] = color;
 	}
-
-	Rectangle rect = MakeRect(MakePoint(10,10),MakePoint(20,20),MakeColor(31,0,0));
 	
 	int t = 0;
+	uint16 white = MakeColor(31,31,31);
+	uint16 black = MakeColor(0,0,0);
+	uint8 dir = 1;
+
+	Rectangle rect = MakeRect(MakePoint(0,0),MakePoint(10,10),white);
+	Rectangle rect2 = MakeRect(MakePoint(0,0),MakePoint(10,10),black);
+
+	Draw(&img);
+	int x = 0;
 	while(1){
 		vsync();
-		//Draw(img);
-		DrawRect(&rect);
-		rect.pos.x += 20;
-		if(rect.pos.x >= SCREEN_W){
-			rect.pos.x = 0;
-			rect.pos.y += 20;
+
+		
+
+		bool keypressed = 0;
+
+		key_poll();
+        if ( getKeyState(KEY_DOWN) )
+        {
+			rect2.pos = rect.pos;
+            rect.pos.y += 10;
+			keypressed = 1;
+        }
+		else if ( getKeyState(KEY_UP) )
+        {
+			rect2.pos = rect.pos;
+            rect.pos.y -= 10;
+			keypressed = 1;
+        }
+		else if ( getKeyState(KEY_LEFT) )
+        {
+			rect2.pos = rect.pos;
+            rect.pos.x -= 10;
+			keypressed = 1;
+        }
+		if ( getKeyState(KEY_RIGHT) )
+        {
+			rect2.pos = rect.pos;
+            rect.pos.x += 10;
+			keypressed = 1;
+        }
+		
+		if(keypressed){
+			DrawRect(rect2);
+
+			DrawRect(rect);
 		}
-		if(rect.pos.y >= SCREEN_H){
-			rect.pos.y = 0;
-			rect.color = MakeColor(t,0,0);
-			t++;
-			if(t > 31){
-				t = 0;
-			}
+
+		
+		/*
+		if ( x > SCREEN_W * (SCREEN_H/10)) x = 0;
+		if (x)
+		{
+			int last = x - 10;
+			drawRect(last % SCREEN_W, (last / SCREEN_W) * 10, 10, 10,MakeColor(0,0,0));
 		}
+
+		drawRect(x % SCREEN_W, (x / SCREEN_W) * 10, 10, 10,MakeColor(31,31,31));
+		x += 10;
+		*/
 	}
 	return 0;
 }
