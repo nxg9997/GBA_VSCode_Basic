@@ -3,12 +3,14 @@
 
 uint8 colorSwap = 0;
 
+// - used to prevent tearing (only draw in VDRAW)
 void vsync()
 {
   while (REG_VCOUNT >= 160);
   while (REG_VCOUNT < 160);
 }
 
+// - Draw a screen-sized bitmap
 void Draw(unsigned short* imgPtr)
 {
 	int x,y;
@@ -19,6 +21,7 @@ void Draw(unsigned short* imgPtr)
 	}
 }
 
+// - used to test stuff
 void ChangeColor(unsigned short* imgPtr)
 { //0x0909 32bit red 2400
 	unsigned short color = *imgPtr;
@@ -49,6 +52,7 @@ void ChangeColor(unsigned short* imgPtr)
 	}
 }
 
+// - used to test stuff
 void drawRect(int left, int top, int width, int height, uint16 clr)
 {
     for (int y = 0; y < height; ++y)
@@ -67,6 +71,7 @@ int main()
 	//set GBA rendering context to MODE 3 Bitmap Rendering
 	REG_DISPLAYCONTROL = VIDEOMODE_3 | BGMODE_2;
 
+	// - create a red bitmap
 	unsigned short img[240*160] = {0x0000};
 
 	uint16 color = MakeColor(31,0,0);
@@ -76,66 +81,161 @@ int main()
 	}
 	
 	int t = 0;
+
+	// - define some basic colors
 	uint16 white = MakeColor(31,31,31);
 	uint16 black = MakeColor(0,0,0);
+
 	uint8 dir = 1;
 
-	Rectangle rect = MakeRect(MakePoint(0,0),MakePoint(10,10),white);
-	Rectangle rect2 = MakeRect(MakePoint(0,0),MakePoint(10,10),black);
+	// - create gameobjects for breakout
+	Point paddle = MakePoint(20,5);
 
-	Draw(&img);
+	Rectangle rect = MakeRect(MakePoint(SCREEN_W / 2 - paddle.x/2, SCREEN_H - 20),MakePoint(paddle.x,paddle.y),white);
+	Rectangle rect2 = MakeRect(MakePoint(50,50),MakePoint(20,20),MakeColor(0,0,31));
+	GameObject player = MakeGameObject(rect);
+	GameObject block = MakeGameObject(rect2);
+
+	GameObject blocks[20];
+
+	int ind = 0;
+	for(int i = 0; i < 10; i++){
+		for(int j = 0; j < 2; j++){
+			blocks[ind] = MakeGameObject(MakeRect(MakePoint(i * 10 + i + SCREEN_W / 4 + 5, j * 10 + j + SCREEN_H / 4), MakePoint(10, 10), MakeColor(i * 2, j * 2, 31)));
+			ind++;
+		}
+	}
+
+	GameObject ball = MakeGameObject(MakeRect(MakePoint(SCREEN_W / 2 - 3, SCREEN_H / 2 + 3), MakePoint(6, 6), white));
+	Point ballSpd = MakePoint(0, 1);
+	
 	int x = 0;
+	int speed = 2;
+
+	// - define game variables
+	int lives = 3;
+	int play = false;
+
 	while(1){
 		vsync();
 
-		
-
-		bool keypressed = 0;
+		bool keypressed = false;
 
 		key_poll();
-        if ( getKeyState(KEY_DOWN) )
+
+		// - press A to play the game
+		if(wasKeyPressed(KEY_A)){
+			play = true;
+		}
+
+		if(!play) continue;
+
+		// - control paddle
+		if ( getKeyState(KEY_LEFT) )
         {
-			rect2.pos = rect.pos;
-            rect.pos.y += 10;
-			keypressed = 1;
-        }
-		else if ( getKeyState(KEY_UP) )
-        {
-			rect2.pos = rect.pos;
-            rect.pos.y -= 10;
-			keypressed = 1;
-        }
-		else if ( getKeyState(KEY_LEFT) )
-        {
-			rect2.pos = rect.pos;
-            rect.pos.x -= 10;
-			keypressed = 1;
+			MoveObject(&player, 'x', -speed);
+			keypressed = true;
         }
 		if ( getKeyState(KEY_RIGHT) )
         {
-			rect2.pos = rect.pos;
-            rect.pos.x += 10;
-			keypressed = 1;
+			MoveObject(&player, 'x', speed);
+			keypressed = true;
         }
-		
-		if(keypressed){
-			DrawRect(rect2);
 
-			DrawRect(rect);
+		// - prevent paddle from going off the screen
+		if(player.shape.pos.x < 0){
+			player.shape.pos.x = 0;
+		}
+		else if(player.shape.pos.x + paddle.x > SCREEN_W){
+			player.shape.pos.x = SCREEN_W - paddle.x;
 		}
 
-		
-		/*
-		if ( x > SCREEN_W * (SCREEN_H/10)) x = 0;
-		if (x)
-		{
-			int last = x - 10;
-			drawRect(last % SCREEN_W, (last / SCREEN_W) * 10, 10, 10,MakeColor(0,0,0));
+		// - Move the ball
+		MoveObject(&ball,'x',ballSpd.x);
+		MoveObject(&ball,'y',ballSpd.y);
+
+		if(ballSpd.x > 3) ballSpd.x = 3;
+		if(ballSpd.x < -3) ballSpd.x = -3;
+
+		// - test collision detection
+		if(AABB(player, block)){
+			player.shape.color = MakeColor(31,0,0);
+		}
+		else{
+			player.shape.color = white;
 		}
 
-		drawRect(x % SCREEN_W, (x / SCREEN_W) * 10, 10, 10,MakeColor(31,31,31));
-		x += 10;
-		*/
+		// - Draw the player and ball
+		DrawGameObject(player,true);
+		DrawGameObject(ball,true);
+
+		bool flipBallY = false;
+		bool flipBallX = false;
+
+		// - ball-player collision
+		if(AABB(player,ball)){
+			flipBallY = true;
+			int playerC = player.shape.pos.x + player.shape.size.x / 2;
+			int ballC = ball.shape.pos.x + ball.shape.size.x / 2;
+
+			int val = ballC - playerC;
+
+			ballSpd.x += val;
+		}
+
+		// - ball-boundary collisions
+		if(ball.shape.pos.x <= 0){
+			//ball.shape.pos.x = 0;
+			flipBallX = true;
+		}
+		else if(ball.shape.pos.x + ball.shape.size.x >= SCREEN_W){
+			//ball.shape.pos.x = SCREEN_W - ball.shape.size.x;
+			flipBallX = true;
+		}
+
+		if(ball.shape.pos.y <= 0){
+			//ball.shape.pos.y = 0;
+			flipBallY = true;
+		}
+		else if(ball.shape.pos.y >= SCREEN_H){
+			// game over or -1 life
+			//flipBallY = true;
+			lives--;
+			play = false;
+			ballSpd = MakePoint(0, 1);
+			ball.shape.pos = MakePoint(SCREEN_W / 2 - 3, SCREEN_H / 2 + 3);
+			if(lives <= 0){
+				break;
+			}
+		}
+
+		// - ball-block collisions and block drawing
+		for(int i = 0; i < 20; i++){
+			if(!(blocks[i].active)) continue;
+			if(AABB(ball,blocks[i])){
+				if(ball.shape.pos.x < blocks[i].shape.pos.x || ball.shape.pos.x + ball.shape.size.x > blocks[i].shape.pos.x + blocks[i].shape.size.x)
+					flipBallX = true;
+				if(ball.shape.pos.y < blocks[i].shape.pos.y || ball.shape.pos.y + ball.shape.size.y > blocks[i].shape.pos.y + blocks[i].shape.size.y)
+					flipBallY = true;
+				blocks[i].active = false;
+				DrawRect(MakeRect(blocks[i].shape.pos,blocks[i].shape.size,black));
+			}
+			else DrawGameObject(blocks[i], false);
+		}
+
+		// - flip ball direction if necessary
+		if(flipBallY){
+			ballSpd.y = -ballSpd.y;
+		}
+
+		if(flipBallX){
+			ballSpd.x = -ballSpd.x;
+		}
+		
 	}
+
+	// - draw red screen on game over
+	Draw(&img);
+	
 	return 0;
 }

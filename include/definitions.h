@@ -3,8 +3,12 @@ typedef unsigned short     uint16;
 typedef unsigned int       uint32;
 typedef unsigned char      bool;
 
+#define false 0
+#define true 1
+
 #define REG_DISPLAYCONTROL *(volatile unsigned int*)0x04000000
 #define VIDEOMODE_3         0x0003
+#define VIDEOMODE_4         0x0004
 #define BGMODE_2            0x0400
 #define SCREENBUFFER        (volatile uint16*)0x06000000
 #define SCREEN_W            240
